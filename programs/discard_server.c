@@ -63,6 +63,7 @@ static int
 receive_cb(struct socket *sock, union sctp_sockstore addr, void *data,
            size_t datalen, struct sctp_rcvinfo rcv, int flags, void *ulp_info)
 {
+	return (1);
 	char namebuf[INET6_ADDRSTRLEN];
 	const char *name;
 	uint16_t port;
@@ -133,7 +134,7 @@ main(int argc, char *argv[])
 	int flags;
 	socklen_t from_len;
 	char buffer[BUFFER_SIZE];
-	char name[INET6_ADDRSTRLEN];
+	// char name[INET6_ADDRSTRLEN];
 	socklen_t infolen;
 	struct sctp_rcvinfo rcv_info;
 	unsigned int infotype;
@@ -196,10 +197,12 @@ main(int argc, char *argv[])
 		perror("usrsctp_listen");
 	}
 	while (1) {
-		if (use_cb) {
+		if (0) {
+		// if (use_cb) {
 #ifdef _WIN32
 			Sleep(SLEEP * 1000);
 #else
+			printf("\n\nready to sleep\n\n");
 			sleep(SLEEP);
 #endif
 		} else {
@@ -208,30 +211,31 @@ main(int argc, char *argv[])
 			infolen = (socklen_t)sizeof(struct sctp_rcvinfo);
 			n = usrsctp_recvv(sock, (void*)buffer, BUFFER_SIZE, (struct sockaddr *) &addr, &from_len, (void *)&rcv_info,
 			                  &infolen, &infotype, &flags);
-			if (n > 0) {
-				if (flags & MSG_NOTIFICATION) {
-					printf("Notification of length %llu received.\n", (unsigned long long)n);
-				} else {
-					if (infotype == SCTP_RECVV_RCVINFO) {
-						printf("Msg of length %llu received from %s:%u on stream %u with SSN %u and TSN %u, PPID %u, context %u, complete %d.\n",
-						        (unsigned long long)n,
-						        inet_ntop(AF_INET6, &addr.sin6_addr, name, INET6_ADDRSTRLEN), ntohs(addr.sin6_port),
-						        rcv_info.rcv_sid,
-						        rcv_info.rcv_ssn,
-						        rcv_info.rcv_tsn,
-						        ntohl(rcv_info.rcv_ppid),
-						        rcv_info.rcv_context,
-						        (flags & MSG_EOR) ? 1 : 0);
-					} else {
-						printf("Msg of length %llu received from %s:%u, complete %d.\n",
-						        (unsigned long long)n,
-						        inet_ntop(AF_INET6, &addr.sin6_addr, name, INET6_ADDRSTRLEN), ntohs(addr.sin6_port),
-						        (flags & MSG_EOR) ? 1 : 0);
-					}
-				}
-			} else {
-				break;
-			}
+			if (n <= 0) break;
+			// if (n > 0) {
+			// 	if (flags & MSG_NOTIFICATION) {
+			// 		printf("Notification of length %llu received.\n", (unsigned long long)n);
+			// 	} else {
+			// 		if (infotype == SCTP_RECVV_RCVINFO) {
+			// 			printf("Msg of length %llu received from %s:%u on stream %u with SSN %u and TSN %u, PPID %u, context %u, complete %d.\n",
+			// 			        (unsigned long long)n,
+			// 			        inet_ntop(AF_INET6, &addr.sin6_addr, name, INET6_ADDRSTRLEN), ntohs(addr.sin6_port),
+			// 			        rcv_info.rcv_sid,
+			// 			        rcv_info.rcv_ssn,
+			// 			        rcv_info.rcv_tsn,
+			// 			        ntohl(rcv_info.rcv_ppid),
+			// 			        rcv_info.rcv_context,
+			// 			        (flags & MSG_EOR) ? 1 : 0);
+			// 		} else {
+			// 			printf("Msg of length %llu received from %s:%u, complete %d.\n",
+			// 			        (unsigned long long)n,
+			// 			        inet_ntop(AF_INET6, &addr.sin6_addr, name, INET6_ADDRSTRLEN), ntohs(addr.sin6_port),
+			// 			        (flags & MSG_EOR) ? 1 : 0);
+			// 		}
+			// 	}
+			// } else {
+			// 	break;
+			// }
 		}
 	}
 	usrsctp_close(sock);
