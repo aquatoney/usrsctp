@@ -45,7 +45,6 @@
 #include <sys/types.h>
 #ifndef _WIN32
 #include <sys/socket.h>
-#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #else
@@ -55,9 +54,6 @@
 #include "programs_helper.h"
 
 int done = 0;
-unsigned char* payload;
-unsigned int payload_len;
-unsigned int single_buffer_len;
 
 #ifdef _WIN32
 typedef char* caddr_t;
@@ -90,7 +86,7 @@ receive_cb(struct socket *sock, union sctp_sockstore addr, void *data,
 }
 
 int
-single_client(int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	struct socket *sock;
 	struct sockaddr *addr, *addrs;
@@ -102,7 +98,7 @@ single_client(int argc, char *argv[])
 	uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
 	                          SCTP_PEER_ADDR_CHANGE,
 	                          SCTP_SEND_FAILED_EVENT};
-	// char buffer[80];
+	char buffer[80];
 	unsigned int i;
 	int n;
 
@@ -272,29 +268,21 @@ single_client(int argc, char *argv[])
 		printf(".\n");
 		usrsctp_freepaddrs(addrs);
 	}
-
-	int cursor = 0;
-	while (cursor < payload_len - 1) {
-		usrsctp_sendv(sock, payload+cursor, single_buffer_len, NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
-		cursor += single_buffer_len;
+	while ((fgets(buffer, sizeof(buffer), stdin) != NULL) && !done) {
+		usrsctp_sendv(sock, buffer, strlen(buffer), NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
 	}
-
-	// while ((fgets(buffer, sizeof(buffer), stdin) != NULL) && !done) {
-	// 	usrsctp_sendv(sock, buffer, strlen(buffer), NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
-	// }
 	if (!done) {
 		if (usrsctp_shutdown(sock, SHUT_WR) < 0) {
 			perror("usrsctp_shutdown");
 		}
 	}
-// 	while (!done) {
-// #ifdef _WIN32
-// 		Sleep(1 * 1000);
-// #else
-// 		sleep(1);
-// #endif
-// 	}
-	usrsctp_close(sock);
+	while (!done) {
+#ifdef _WIN32
+		Sleep(1 * 1000);
+#else
+		sleep(1);
+#endif
+	}
 	usrsctp_get_stat(&stat);
 	printf("Number of packets (sent/received): (%u/%u).\n",
 	       stat.sctps_outpackets, stat.sctps_inpackets);
@@ -305,31 +293,5 @@ single_client(int argc, char *argv[])
 		sleep(1);
 #endif
 	}
-	return (0);
-}
-
-int
-main(int argc, char *argv[])
-{
-	unsigned duration = 10;
-	single_buffer_len = 80;
-	payload_len = 1000;
-	payload = (unsigned char*)malloc(sizeof(unsigned char)*payload_len);
-
-	struct timeval start, now;
-	gettimeofday(&start, NULL);
-
-	while (1) {
-
-		int ret = single_client(argc, argv);
-		if (ret < 0) {
-			perror("Return of client");
-			break;
-		}
-
-		gettimeofday(&now, NULL);
-		if (now.tv_sec - start.tv_sec > duration) break;
-	}
-
 	return(0);
 }
