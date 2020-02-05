@@ -95,9 +95,9 @@ struct sockaddr_in6 addr6;
 struct sockaddr_in addr4;
 struct sctp_udpencaps encaps;
 struct sctp_event event;
-uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
-                          SCTP_PEER_ADDR_CHANGE,
-                          SCTP_SEND_FAILED_EVENT};
+// uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
+//                           SCTP_PEER_ADDR_CHANGE,
+//                           SCTP_SEND_FAILED_EVENT};
 
 void 
 init_sock(int argc, char *argv[])
@@ -157,21 +157,23 @@ certain_client(int argc, char* argv[])
 	if ((sock = usrsctp_socket(AF_INET6, SOCK_STREAM, IPPROTO_SCTP, receive_cb, NULL, 0, NULL)) == NULL) {
 		perror("usrsctp_socket");
 	}
-	printf("sock ready\n");
-	int i;
-	for (i = 0; i < sizeof(event_types)/sizeof(uint16_t); i++) {
-		event.se_type = event_types[i];
-		if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(event)) < 0) {
-			perror("setsockopt SCTP_EVENT");
-		}
-	}
-	printf("event ready\n");
+	usrsctp_set_non_blocking(sock, 1);
+	
+	// printf("sock ready\n");
+	// int i;
+	// for (i = 0; i < sizeof(event_types)/sizeof(uint16_t); i++) {
+	// 	event.se_type = event_types[i];
+	// 	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(event)) < 0) {
+	// 		perror("setsockopt SCTP_EVENT");
+	// 	}
+	// }
+	// printf("event ready\n");
 	if (argc > 5) {
 		if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_REMOTE_UDP_ENCAPS_PORT, (const void*)&encaps, (socklen_t)sizeof(struct sctp_udpencaps)) < 0) {
 			perror("setsockopt");
 		}
 	}
-	printf("encaps ready\n");
+	// printf("encaps ready\n");
 
 	// struct sockaddr *addr, *addrs;
 	// struct sctpstat stat;
@@ -291,7 +293,7 @@ certain_client(int argc, char* argv[])
 // 		printf(".\n");
 // 		usrsctp_freepaddrs(addrs);
 // 	}
-	printf("ready to send packets\n");
+	// printf("ready to send packets\n");
 	int cursor = 0;
 	while (cursor < payload_len) {
 		usrsctp_sendv(sock, payload+cursor, single_buffer_len, NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
@@ -301,7 +303,7 @@ certain_client(int argc, char* argv[])
 	// while ((fgets(buffer, sizeof(buffer), stdin) != NULL) && !done) {
 	// 	usrsctp_sendv(sock, buffer, strlen(buffer), NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
 	// }
-	printf("Sent all packets\n");
+	// printf("Sent all packets\n");
 	if (!done) {
 		if (usrsctp_shutdown(sock, SHUT_WR) < 0) {
 			perror("usrsctp_shutdown");
@@ -358,9 +360,9 @@ main(int argc, char *argv[])
 	init_sock(argc, argv);
 
 	while (!ctrl_c) {
-		printf("\nnew client\n");
+		// printf("\nnew client\n");
 		ret = certain_client(argc, argv);
-		printf("client done\n");
+		// printf("client done\n");
 		if (ret < 0) {
 			perror("Ret of client");
 			break;
