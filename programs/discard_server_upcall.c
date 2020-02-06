@@ -53,86 +53,88 @@
 #define PORT 9
 
 
+char buf[BUFFERSIZE];
+
 static void
 handle_upcall(struct socket *sock, void *data, int flgs)
 {
-	char namebuf[INET6_ADDRSTRLEN];
-	const char *name;
-	uint16_t port;
-	char *buf;
+	// char namebuf[INET6_ADDRSTRLEN];
+	// const char *name;
+	// uint16_t port;
+	// char *buf;
 	int events;
 
 	while ((events = usrsctp_get_events(sock)) && (events & SCTP_EVENT_READ)) {
 		struct sctp_recvv_rn rn;
-		ssize_t n;
 		struct sockaddr_storage addr;
-		buf = malloc(BUFFERSIZE);
+		// buf = malloc(BUFFERSIZE);
 		int flags = 0;
 		socklen_t len = (socklen_t)sizeof(struct sockaddr_storage);
 		unsigned int infotype = 0;
 		socklen_t infolen = sizeof(struct sctp_recvv_rn);
 		memset(&rn, 0, sizeof(struct sctp_recvv_rn));
+		ssize_t n = 0;
 		n = usrsctp_recvv(sock, buf, BUFFERSIZE, (struct sockaddr *) &addr, &len, (void *)&rn,
 		             &infolen, &infotype, &flags);
 		if (n < 0) {
 			perror("usrsctp_recvv");
 		}
-		if (n > 0) {
-			if (flags & MSG_NOTIFICATION) {
-				printf("Notification of length %d received.\n", (int)n);
-			} else {
-/*
-#ifdef _WIN32
-				_write(_fileno(stdout), buf, (unsigned int)n);
-#else
-				if (write(fileno(stdout), buf, n) < 0) {
-					perror("write");
-				}
-#endif
-*/
-				switch (addr.ss_family) {
-#ifdef INET
-				case AF_INET: {
-					struct sockaddr_in addr4;
-					memcpy(&addr4, (struct sockaddr_in *)&addr, sizeof(struct sockaddr_in));
-					name = inet_ntop(AF_INET, &addr4.sin_addr, namebuf, INET_ADDRSTRLEN);
-					port = ntohs(addr4.sin_port);
-					break;
-					}
-#endif
-#ifdef INET6
-				case AF_INET6: {
-					struct sockaddr_in6 addr6;
-					memcpy(&addr6, (struct sockaddr_in6 *)&addr, sizeof(struct sockaddr_in6));
-					name = inet_ntop(AF_INET6, &addr6.sin6_addr, namebuf, INET6_ADDRSTRLEN),
-					port = ntohs(addr6.sin6_port);
-					break;
-					}
-#endif
-				default:
-					name = NULL;
-					port = 0;
-					break;
-				}
+// 		if (n > 0) {
+// 			if (flags & MSG_NOTIFICATION) {
+// 				printf("Notification of length %d received.\n", (int)n);
+// 			} else {
+// /*
+// #ifdef _WIN32
+// 				_write(_fileno(stdout), buf, (unsigned int)n);
+// #else
+// 				if (write(fileno(stdout), buf, n) < 0) {
+// 					perror("write");
+// 				}
+// #endif
+// */
+// 				switch (addr.ss_family) {
+// #ifdef INET
+// 				case AF_INET: {
+// 					struct sockaddr_in addr4;
+// 					memcpy(&addr4, (struct sockaddr_in *)&addr, sizeof(struct sockaddr_in));
+// 					name = inet_ntop(AF_INET, &addr4.sin_addr, namebuf, INET_ADDRSTRLEN);
+// 					port = ntohs(addr4.sin_port);
+// 					break;
+// 					}
+// #endif
+// #ifdef INET6
+// 				case AF_INET6: {
+// 					struct sockaddr_in6 addr6;
+// 					memcpy(&addr6, (struct sockaddr_in6 *)&addr, sizeof(struct sockaddr_in6));
+// 					name = inet_ntop(AF_INET6, &addr6.sin6_addr, namebuf, INET6_ADDRSTRLEN),
+// 					port = ntohs(addr6.sin6_port);
+// 					break;
+// 					}
+// #endif
+// 				default:
+// 					name = NULL;
+// 					port = 0;
+// 					break;
+// 				}
 
-				if (name == NULL) {
-					printf("inet_ntop failed\n");
-					free(buf);
-					return;
-				}
+// 				if (name == NULL) {
+// 					printf("inet_ntop failed\n");
+// 					free(buf);
+// 					return;
+// 				}
 
-				printf("Msg of length %d received from %s:%u on stream %d with SSN %u and TSN %u, PPID %u, context %u.\n",
-				       (int)n,
-				       namebuf,
-				       port,
-				       rn.recvv_rcvinfo.rcv_sid,
-				       rn.recvv_rcvinfo.rcv_ssn,
-				       rn.recvv_rcvinfo.rcv_tsn,
-				       ntohl(rn.recvv_rcvinfo.rcv_ppid),
-				       rn.recvv_rcvinfo.rcv_context);
-			}
-		}
-		free(buf);
+// 				printf("Msg of length %d received from %s:%u on stream %d with SSN %u and TSN %u, PPID %u, context %u.\n",
+// 				       (int)n,
+// 				       namebuf,
+// 				       port,
+// 				       rn.recvv_rcvinfo.rcv_sid,
+// 				       rn.recvv_rcvinfo.rcv_ssn,
+// 				       rn.recvv_rcvinfo.rcv_tsn,
+// 				       ntohl(rn.recvv_rcvinfo.rcv_ppid),
+// 				       rn.recvv_rcvinfo.rcv_context);
+// 			}
+		// }
+// 		free(buf);
 	}
 	return;
 }
