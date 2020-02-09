@@ -120,14 +120,14 @@ main(int argc, char *argv[])
 	struct socket *sock;
 	struct sockaddr_in6 addr;
 	struct sctp_udpencaps encaps;
-	struct sctp_event event;
-	uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
-	                          SCTP_PEER_ADDR_CHANGE,
-	                          SCTP_REMOTE_ERROR,
-	                          SCTP_SHUTDOWN_EVENT,
-	                          SCTP_ADAPTATION_INDICATION,
-	                          SCTP_PARTIAL_DELIVERY_EVENT};
-	unsigned int i;
+	// struct sctp_event event;
+	// uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
+	//                           SCTP_PEER_ADDR_CHANGE,
+	//                           SCTP_REMOTE_ERROR,
+	//                           SCTP_SHUTDOWN_EVENT,
+	//                           SCTP_ADAPTATION_INDICATION,
+	//                           SCTP_PARTIAL_DELIVERY_EVENT};
+	// unsigned int i;
 	struct sctp_assoc_value av;
 	const int on = 1;
 	ssize_t n;
@@ -144,15 +144,16 @@ main(int argc, char *argv[])
 	} else {
 		usrsctp_init(9899, NULL, debug_printf_stack);
 	}
-#ifdef SCTP_DEBUG
-	usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
-#endif
+// #ifdef SCTP_DEBUG
+	// usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_ALL);
+// #endif
 	usrsctp_sysctl_set_sctp_blackhole(2);
 	usrsctp_sysctl_set_sctp_no_csum_on_loopback(0);
 
 	if ((sock = usrsctp_socket(AF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP, use_cb?receive_cb:NULL, NULL, 0, NULL)) == NULL) {
 		perror("usrsctp_socket");
 	}
+	
 	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_I_WANT_MAPPED_V4_ADDR, (const void*)&on, (socklen_t)sizeof(int)) < 0) {
 		perror("usrsctp_setsockopt SCTP_I_WANT_MAPPED_V4_ADDR");
 	}
@@ -160,12 +161,12 @@ main(int argc, char *argv[])
 	av.assoc_id = SCTP_ALL_ASSOC;
 	av.assoc_value = 47;
 
-	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_CONTEXT, (const void*)&av, (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
-		perror("usrsctp_setsockopt SCTP_CONTEXT");
-	}
-	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_RECVRCVINFO, &on, sizeof(int)) < 0) {
-		perror("usrsctp_setsockopt SCTP_RECVRCVINFO");
-	}
+	// if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_CONTEXT, (const void*)&av, (socklen_t)sizeof(struct sctp_assoc_value)) < 0) {
+	// 	perror("usrsctp_setsockopt SCTP_CONTEXT");
+	// }
+	// if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_RECVRCVINFO, &on, sizeof(int)) < 0) {
+	// 	perror("usrsctp_setsockopt SCTP_RECVRCVINFO");
+	// }
 	if (argc > 2) {
 		memset(&encaps, 0, sizeof(struct sctp_udpencaps));
 		encaps.sue_address.ss_family = AF_INET6;
@@ -174,15 +175,15 @@ main(int argc, char *argv[])
 			perror("usrsctp_setsockopt SCTP_REMOTE_UDP_ENCAPS_PORT");
 		}
 	}
-	memset(&event, 0, sizeof(event));
-	event.se_assoc_id = SCTP_FUTURE_ASSOC;
-	event.se_on = 1;
-	for (i = 0; i < (unsigned int)(sizeof(event_types)/sizeof(uint16_t)); i++) {
-		event.se_type = event_types[i];
-		if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(struct sctp_event)) < 0) {
-			perror("usrsctp_setsockopt SCTP_EVENT");
-		}
-	}
+	// memset(&event, 0, sizeof(event));
+	// event.se_assoc_id = SCTP_FUTURE_ASSOC;
+	// event.se_on = 1;
+	// for (i = 0; i < (unsigned int)(sizeof(event_types)/sizeof(uint16_t)); i++) {
+	// 	event.se_type = event_types[i];
+	// 	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(struct sctp_event)) < 0) {
+	// 		perror("usrsctp_setsockopt SCTP_EVENT");
+	// 	}
+	// }
 	memset((void *)&addr, 0, sizeof(struct sockaddr_in6));
 #ifdef HAVE_SIN6_LEN
 	addr.sin6_len = sizeof(struct sockaddr_in6);

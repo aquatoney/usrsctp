@@ -54,11 +54,13 @@
 #endif
 #include <usrsctp.h>
 #include "programs_helper.h"
+#include "pthread.h"
 
 int done = 0;
 unsigned char* payload;
 unsigned int payload_len;
 unsigned int single_buffer_len;
+int ctrl_c = 0;
 
 #ifdef _WIN32
 typedef char* caddr_t;
@@ -90,44 +92,18 @@ receive_cb(struct socket *sock, union sctp_sockstore addr, void *data,
 	return (1);
 }
 
-struct socket *sock;
+
 struct sockaddr_in6 addr6;
 struct sockaddr_in addr4;
 struct sctp_udpencaps encaps;
 struct sctp_event event;
-// uint16_t event_types[] = {SCTP_ASSOC_CHANGE,
-//                           SCTP_PEER_ADDR_CHANGE,
-//                           SCTP_SEND_FAILED_EVENT};
 
 void 
 init_sock(int argc, char *argv[])
 {
-	// unsigned int i;
-
-	// if ((sock = usrsctp_socket(AF_INET6, SOCK_STREAM, IPPROTO_SCTP, receive_cb, NULL, 0, NULL)) == NULL) {
-	// 	perror("usrsctp_socket");
-	// }
 	memset(&event, 0, sizeof(event));
 	event.se_assoc_id = SCTP_ALL_ASSOC;
 	event.se_on = 1;
-	// for (i = 0; i < sizeof(event_types)/sizeof(uint16_t); i++) {
-	// 	event.se_type = event_types[i];
-	// 	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(event)) < 0) {
-	// 		perror("setsockopt SCTP_EVENT");
-	// 	}
-	// }
-// 	if (argc > 3) {
-// 		memset((void *)&addr6, 0, sizeof(struct sockaddr_in6));
-// #ifdef HAVE_SIN6_LEN
-// 		addr6.sin6_len = sizeof(struct sockaddr_in6);
-// #endif
-// 		addr6.sin6_family = AF_INET6;
-// 		addr6.sin6_port = htons(atoi(argv[3]));
-// 		addr6.sin6_addr = in6addr_any;
-// 		if (usrsctp_bind(sock, (struct sockaddr *)&addr6, sizeof(struct sockaddr_in6)) < 0) {
-// 			perror("bind");
-// 		}
-// 	}
 	if (argc > 5) {
 		memset(&encaps, 0, sizeof(struct sctp_udpencaps));
 		encaps.sue_address.ss_family = AF_INET6;
@@ -150,190 +126,43 @@ init_sock(int argc, char *argv[])
 	inet_pton(AF_INET, argv[1], &addr4.sin_addr);
 }
 
-int
-certain_client(int argc, char* argv[])
+void*
+certain_client()
 {
-
-	if ((sock = usrsctp_socket(AF_INET6, SOCK_STREAM, IPPROTO_SCTP, receive_cb, NULL, 0, NULL)) == NULL) {
-		perror("usrsctp_socket");
-	}
-	usrsctp_set_non_blocking(sock, 1);
-	
-	// printf("sock ready\n");
-	// int i;
-	// for (i = 0; i < sizeof(event_types)/sizeof(uint16_t); i++) {
-	// 	event.se_type = event_types[i];
-	// 	if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_EVENT, &event, sizeof(event)) < 0) {
-	// 		perror("setsockopt SCTP_EVENT");
-	// 	}
-	// }
-	// printf("event ready\n");
-	if (argc > 5) {
+	int loop = 0;
+	struct socket *sock;
+	while (!ctrl_c) {
+		printf("creating sock %d\n", loop++);
+		if ((sock = usrsctp_socket(AF_INET6, SOCK_STREAM, IPPROTO_SCTP, receive_cb, NULL, 0, NULL)) == NULL) {
+			perror("usrsctp_socket");
+		}
 		if (usrsctp_setsockopt(sock, IPPROTO_SCTP, SCTP_REMOTE_UDP_ENCAPS_PORT, (const void*)&encaps, (socklen_t)sizeof(struct sctp_udpencaps)) < 0) {
 			perror("setsockopt");
 		}
-	}
-	// printf("encaps ready\n");
-
-	// struct sockaddr *addr, *addrs;
-	// struct sctpstat stat;
-	// char buffer[80];
-	// int n;
-
-// 	if (argc < 3) {
-// 		printf("%s", "Usage: client remote_addr remote_port local_port local_encaps_port remote_encaps_port\n");
-// 		return (-1);
-// 	}
-// 	if (argc > 4) {
-// 		usrsctp_init(atoi(argv[4]), NULL, debug_printf_stack);
-// 	} else {
-// 		usrsctp_init(9899, NULL, debug_printf_stack);
-// 	}
-// #ifdef SCTP_DEBUG
-// 	usrsctp_sysctl_set_sctp_debug_on(SCTP_DEBUG_NONE);
-// #endif
-
-	
-	if (usrsctp_connect(sock, (struct sockaddr *)&addr4, sizeof(struct sockaddr_in)) < 0) {
-		perror("usrsctp_connect");
-	}
-// 	if ((n = usrsctp_getladdrs(sock, 0, &addrs)) < 0) {
-// 		perror("usrsctp_getladdrs");
-// 	} else {
-// 		addr = addrs;
-// 		printf("Local addresses: ");
-// 		for (i = 0; i < (unsigned int)n; i++) {
-// 			if (i > 0) {
-// 				printf("%s", ", ");
-// 			}
-// 			switch (addr->sa_family) {
-// 			case AF_INET:
-// 			{
-// 				struct sockaddr_in *sin;
-// 				char buf[INET_ADDRSTRLEN];
-// 				const char *name;
-
-// 				sin = (struct sockaddr_in *)addr;
-// 				name = inet_ntop(AF_INET, &sin->sin_addr, buf, INET_ADDRSTRLEN);
-// 				printf("%s", name);
-// #ifndef HAVE_SA_LEN
-// 				addr = (struct sockaddr *)((caddr_t)addr + sizeof(struct sockaddr_in));
-// #endif
-// 				break;
-// 			}
-// 			case AF_INET6:
-// 			{
-// 				struct sockaddr_in6 *sin6;
-// 				char buf[INET6_ADDRSTRLEN];
-// 				const char *name;
-
-// 				sin6 = (struct sockaddr_in6 *)addr;
-// 				name = inet_ntop(AF_INET6, &sin6->sin6_addr, buf, INET6_ADDRSTRLEN);
-// 				printf("%s", name);
-// #ifndef HAVE_SA_LEN
-// 				addr = (struct sockaddr *)((caddr_t)addr + sizeof(struct sockaddr_in6));
-// #endif
-// 				break;
-// 			}
-// 			default:
-// 				break;
-// 			}
-// #ifdef HAVE_SA_LEN
-// 			addr = (struct sockaddr *)((caddr_t)addr + addr->sa_len);
-// #endif
-// 		}
-// 		printf(".\n");
-// 		usrsctp_freeladdrs(addrs);
-// 	}
-// 	if ((n = usrsctp_getpaddrs(sock, 0, &addrs)) < 0) {
-// 		perror("usrsctp_getpaddrs");
-// 	} else {
-// 		addr = addrs;
-// 		printf("Peer addresses: ");
-// 		for (i = 0; i < (unsigned int)n; i++) {
-// 			if (i > 0) {
-// 				printf("%s", ", ");
-// 			}
-// 			switch (addr->sa_family) {
-// 			case AF_INET:
-// 			{
-// 				struct sockaddr_in *sin;
-// 				char buf[INET_ADDRSTRLEN];
-// 				const char *name;
-
-// 				sin = (struct sockaddr_in *)addr;
-// 				name = inet_ntop(AF_INET, &sin->sin_addr, buf, INET_ADDRSTRLEN);
-// 				printf("%s", name);
-// #ifndef HAVE_SA_LEN
-// 				addr = (struct sockaddr *)((caddr_t)addr + sizeof(struct sockaddr_in));
-// #endif
-// 				break;
-// 			}
-// 			case AF_INET6:
-// 			{
-// 				struct sockaddr_in6 *sin6;
-// 				char buf[INET6_ADDRSTRLEN];
-// 				const char *name;
-
-// 				sin6 = (struct sockaddr_in6 *)addr;
-// 				name = inet_ntop(AF_INET6, &sin6->sin6_addr, buf, INET6_ADDRSTRLEN);
-// 				printf("%s", name);
-// #ifndef HAVE_SA_LEN
-// 				addr = (struct sockaddr *)((caddr_t)addr + sizeof(struct sockaddr_in6));
-// #endif
-// 				break;
-// 			}
-// 			default:
-// 				break;
-// 			}
-// #ifdef HAVE_SA_LEN
-// 			addr = (struct sockaddr *)((caddr_t)addr + addr->sa_len);
-// #endif
-// 		}
-// 		printf(".\n");
-// 		usrsctp_freepaddrs(addrs);
-// 	}
-	// printf("ready to send packets\n");
-	int cursor = 0;
-	while (cursor < payload_len) {
-		usrsctp_sendv(sock, payload+cursor, single_buffer_len, NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
-		cursor += single_buffer_len;
-	}
-
-	// while ((fgets(buffer, sizeof(buffer), stdin) != NULL) && !done) {
-	// 	usrsctp_sendv(sock, buffer, strlen(buffer), NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
-	// }
-	// printf("Sent all packets\n");
-	if (!done) {
-		if (usrsctp_shutdown(sock, SHUT_WR) < 0) {
-			perror("usrsctp_shutdown");
+		printf("connecting\n");
+		if (usrsctp_connect(sock, (struct sockaddr *)&addr4, sizeof(struct sockaddr_in)) < 0) {
+			perror("usrsctp_connect");
 		}
-	}
-	// printf("Shutdown\n");
-// 	while (!done) {
-// #ifdef _WIN32
-// 		Sleep(1 * 1000);
-// #else
-// 		sleep(1);
-// #endif
-// 	}
-	// usrsctp_get_stat(&stat);
-	// printf("Number of packets (sent/received): (%u/%u).\n",
-	//        stat.sctps_outpackets, stat.sctps_inpackets);
 
-	usrsctp_close(sock);
-// 	while (usrsctp_finish() != 0) {
-// #ifdef _WIN32
-// 		Sleep(1 * 1000);
-// #else
-// 		sleep(1);
-// #endif
-// 	}
-// 	printf("Finished\n");
-	return(0);
+		printf("connected\n");
+		int cursor = 0;
+		while (cursor < payload_len) {
+			usrsctp_sendv(sock, payload+cursor, single_buffer_len, NULL, 0, NULL, 0, SCTP_SENDV_NOINFO, 0);
+			cursor += single_buffer_len;
+		}
+
+		if (!done) {
+			if (usrsctp_shutdown(sock, SHUT_WR) < 0) {
+				perror("usrsctp_shutdown");
+			}
+		}
+		usrsctp_close(sock);
+	}
+	printf("exiting thread\n");
+	pthread_exit(0);
 }
 
-int ctrl_c = 0;
+
 
 void 
 ctrl_c_handler(int sig) {
@@ -348,9 +177,10 @@ main(int argc, char *argv[])
 
 	single_buffer_len = 1024;
 	payload_len = 1024*1024;
+	int max_threads = atoi(argv[6]);
 	payload = (unsigned char*)malloc(sizeof(unsigned char*)*payload_len);
+	pthread_t pid[3000];
 
-	int ret;
 
 	usrsctp_init(atoi(argv[4]), NULL, debug_printf_stack);
 	
@@ -359,14 +189,25 @@ main(int argc, char *argv[])
 
 	init_sock(argc, argv);
 
-	while (!ctrl_c) {
-		// printf("\nnew client\n");
-		ret = certain_client(argc, argv);
-		// printf("client done\n");
-		if (ret < 0) {
-			perror("Ret of client");
-			break;
-		}
+	// while (!ctrl_c) {
+	// 	// printf("\nnew client\n");
+	// 	ret = certain_client(argc, argv);
+	// 	// printf("client done\n");
+	// 	if (ret < 0) {
+	// 		perror("Ret of client");
+	// 		break;
+	// 	}
+	// }
+
+	int thread = 0;
+	while (thread != max_threads) {
+		pthread_create(&pid[thread], NULL, certain_client, NULL);
+		thread++;
+	}
+	thread = 0;
+	while (thread != max_threads) {
+		pthread_join(pid[thread], NULL);
+		thread++;
 	}
 
 	usrsctp_finish();
