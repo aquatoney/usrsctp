@@ -175,8 +175,8 @@ main(int argc, char *argv[])
 {
 	signal(SIGINT, ctrl_c_handler);
 
-	single_buffer_len = 1024;
-	payload_len = 1024*1024;
+	single_buffer_len = 4*1024;
+	payload_len = 128*1024*1024;
 	int max_threads = atoi(argv[6]);
 	payload = (unsigned char*)malloc(sizeof(unsigned char*)*payload_len);
 	pthread_t pid[3000];
